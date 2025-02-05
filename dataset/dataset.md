@@ -4,17 +4,15 @@ Extract and place the files inside the project directory as shown below:
 
 ```
 Computer_Vision_Project/
-│
-├── dataset/
-│   ├── annotations/
-│   │   ├── trimaps/
-│   │   ├── xmls/
-│   │   ├── ._trimaps
-│   │   ├── README
-│   │   ├── test.txt
-│   │   ├── trainval.txt
-│   │
-│   ├── images/
-|   |   ├──Abyssinian_1.jpg
-|   |   ├──...
+│ ├── dataset/ 
+| │ ├── annotations/ 
+| │ │ ├── trimaps/ 
+| │ │ ├── xmls/ 
+| │ │ ├── ._trimaps 
+| │ │ ├── README 
+| │ │ ├── test.txt 
+| │ │ ├── trainval.txt 
+| │ ├── images/
+| | │ ├──Abyssinian_1.jpg 
+| | | ├──...
 ```
