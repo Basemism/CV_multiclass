@@ -2,6 +2,7 @@ Download dataset (images, and annotations) from here; https://www.robots.ox.ac.u
 
 Extract and place the files inside the project directory as shown below:
 
+```
 Computer_Vision_Project/
 │
 ├── dataset/
@@ -16,4 +17,4 @@ Computer_Vision_Project/
 │   ├── images/
 |   |   ├──Abyssinian_1.jpg
 |   |   ├──...
-
+```
