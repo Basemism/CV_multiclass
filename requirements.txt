@@ -1,0 +1,9 @@
+albumentations==2.0.3
+imagesize==1.4.1
+matplotlib==3.10.0
+numpy==2.2.2
+opencv_python==4.11.0.86
+opencv_python_headless==4.11.0.86
+Pillow==11.1.0
+scipy==1.15.1
+tqdm==4.66.5
