@@ -1,4 +1,10 @@
 dataset/annotations/
 dataset/images/
-trainval/*
+
+trainval_128/images/
+trainval_128/annotations/
+
+trainval_256/images/
+trainval_256/annotations/
+
 trainval.zip    
