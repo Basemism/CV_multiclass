@@ -7,4 +7,10 @@ trainval_128/annotations/
 trainval_256/images/
 trainval_256/annotations/
 
+trainval_64/images/
+trainval_64/annotations/
+
+trainval_32/images/
+trainval_32/annotations/
+
 trainval.zip    
