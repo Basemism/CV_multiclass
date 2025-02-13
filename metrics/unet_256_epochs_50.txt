@@ -1,0 +1,4 @@
+Pixel Accuracy: 87.01%
+Precision: 88.04%
+Recall: 87.01%
+F1 Score: 86.75%
