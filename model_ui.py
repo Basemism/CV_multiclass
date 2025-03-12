@@ -42,6 +42,8 @@ with torch.no_grad():
 
 output = postprocess_output(output, image_dims)
 
+print(np.unique(output))
+
 if args.output:
     cv2.imwrite(args.output, output)
 
