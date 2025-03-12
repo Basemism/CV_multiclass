@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim=256):
+    def __init__(self):
         super(Autoencoder, self).__init__()
-        # Encoder: Similar to UNet encoder (simpler version)
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, padding=1),  # [B,16,H,W]
             nn.BatchNorm2d(16),

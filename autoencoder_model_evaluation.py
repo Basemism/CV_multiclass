@@ -41,7 +41,7 @@ metrics_filename = args.metrics
 
 num_seg_classes = 3  # 0: background, 1: cat, 2: dog
 
-autoencoder = Autoencoder(latent_dim=64).to(device)
+autoencoder = Autoencoder().to(device)
 autoencoder.load_state_dict(torch.load('./ae_weights/autoencoder_256_epochs_50.pth', map_location=device))
 autoencoder.eval()
 

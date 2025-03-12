@@ -136,7 +136,6 @@ img_dim = 256
 batch_size = 16
 num_epochs_ae = 50
 num_epochs_seg = 50
-latent_dim = 64  # Encoder output channels (for our simple AE)
 num_seg_classes = 3  # e.g., background, cat, dog
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -150,7 +149,7 @@ train_loader_ae = DataLoader(train_dataset_ae, batch_size=batch_size, shuffle=Tr
 val_loader_ae   = DataLoader(val_dataset_ae, batch_size=batch_size, shuffle=False)
 
 print("Training Autoencoder...")
-autoencoder = Autoencoder(latent_dim=latent_dim).to(device)
+autoencoder = Autoencoder().to(device)
 optimizer_ae = optim.Adam(autoencoder.parameters(), lr=1e-3)
 criterion_ae = nn.MSELoss()
 
