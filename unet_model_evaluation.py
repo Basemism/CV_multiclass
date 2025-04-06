@@ -26,6 +26,7 @@ def postprocess_output(output, image_dims):
     output = cv2.resize(output, (image_dims[1], image_dims[0]), interpolation=cv2.INTER_NEAREST)
     return output
 
+num_seg_classes = 3  # 0: background, 1: cat, 2: dog
 
 parser = argparse.ArgumentParser()
 
@@ -58,9 +59,14 @@ pixel_accs = []
 precisions = []
 recalls = []
 f1_scores = []
-iou_scores_bg = []   # background (class 0)
-iou_scores_cat = []  # cat (class 1)
-iou_scores_dog = []  # dog (class 2)
+intersection_bg = 0   # background (class 0)
+union_bg = 0  # background (class 0)
+
+intersection_cat = 0   # background (class 1)
+union_cat = 0   # cat (class 1)
+
+intersection_dog = 0   #  (class 2)
+union_dog = 0   # dog (class 2)
 
 print(f"Found {len(test_images)} test images.")
 
@@ -115,22 +121,27 @@ for i in tqdm(range(len(test_images)), desc="Predicting and Evaluating"):
     f1_scores.append(f1_score(gt_valid, pred_valid, average='weighted', zero_division=0))
 
     # Compute IoU for each class (0: background, 1: cat, 2: dog)
-    for cls, iou_list in zip([0, 1, 2], [iou_scores_bg, iou_scores_cat, iou_scores_dog]):
-        gt_cls = (gt_valid == cls)
-        pred_cls = (pred_valid == cls)
-        intersection = np.logical_and(gt_cls, pred_cls).sum()
-        union = np.logical_or(gt_cls, pred_cls).sum()
-        iou = intersection / union if union != 0 else 0
-        iou_list.append(iou)
+    for j in range(num_seg_classes):
+        intersection = np.logical_and(pred == j, gt_remapped == j).sum()
+        union = np.logical_or(pred == j, gt_remapped == j).sum()
+        if j == 0:
+            intersection_bg += intersection
+            union_bg += union
+        elif j == 1:
+            intersection_cat += intersection
+            union_cat += union
+        elif j == 2:
+            intersection_dog += intersection
+            union_dog += union
 
 avg_pixel_acc = np.mean(pixel_accs)
 avg_precision = np.mean(precisions)
 avg_recall = np.mean(recalls)
 avg_f1_score = np.mean(f1_scores)
-avg_iou_bg = np.mean(iou_scores_bg)
-avg_iou_cat = np.mean(iou_scores_cat)
-avg_iou_dog = np.mean(iou_scores_dog)
-avg_iou_overall = np.mean(iou_scores_bg + iou_scores_cat + iou_scores_dog)
+avg_iou_overall = (intersection_bg + intersection_cat + intersection_dog) / (union_bg + union_cat + union_dog)
+avg_iou_bg = intersection_bg / union_bg if union_bg > 0 else 0
+avg_iou_cat = intersection_cat / union_cat if union_cat > 0 else 0
+avg_iou_dog = intersection_dog / union_dog if union_dog > 0 else 0
 
 print(f"Pixel Accuracy: {avg_pixel_acc*100:.2f}%")
 print(f"Precision: {avg_precision*100:.2f}%")
