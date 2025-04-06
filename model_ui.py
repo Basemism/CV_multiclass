@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 from models.unet import UNet
+from models.autoencoder import Autoencoder, SegmentationModel
 
 def preprocess_image(image, dim, device):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -27,6 +28,8 @@ parser.add_argument('--input', type=str,  default='./example.jpg', help='input i
 parser.add_argument('--gt', type=str, help='ground truth image')
 parser.add_argument('--category', type=int, help='1 = cat 2 = dog')
 parser.add_argument('--output', type=str, help='output filename')
+parser.add_argument('--model', type=str, default='unet', help='model name')
+
 
 parser.add_argument('--weights', type=str, default='./unet_weights/unet_model_256_epochs_50.pth', help='path to weights file')
 parser.add_argument('--dim', type=int, default=256, help='image dimension')
@@ -35,12 +38,31 @@ parser.add_argument('--gpu', type=int, default=0, help='default cuda:0 (will con
 args = parser.parse_args()
 
 device = 'cpu'
+
+if torch.cuda.is_available():
+    device = f'cuda:{args.gpu}'
+
 dim = args.dim
 
 # Load the model
-model = UNet(3).to(device)
-model.load_state_dict(torch.load(args.weights, map_location=torch.device(device)))
-model.eval()
+
+if args.model == 'unet':
+    model = UNet(3).to(device)
+    model.load_state_dict(torch.load(args.weights, map_location=torch.device(device)))
+    model.eval()
+elif args.model == 'ae':
+
+    autoencoder = Autoencoder().to(device)
+    autoencoder.load_state_dict(torch.load('./ae_weights/autoencoder_256_epochs_50.pth', map_location=device))
+    autoencoder.eval()
+
+    model = SegmentationModel(encoder=autoencoder.encoder, num_classes=3).to(device)
+    # The model's encoder and decoder should have been defined in models/segmentation_model.py.
+    model.load_state_dict(torch.load('./seg_weights/seg_model_256_epochs_50.pth', map_location=device))
+    model.eval()
+
+
+
 
 # Load the image
 image = cv2.imread(args.input)
