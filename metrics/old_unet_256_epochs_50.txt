@@ -1,8 +1,0 @@
-Pixel Accuracy: 87.46%
-Precision: 88.48%
-Recall: 87.46%
-F1 Score: 86.98%
-Mean IoU: 67.83%
-IoU Class 1: 75.30%
-IoU Class 2: 84.78%
-IoU Class 3: 43.41%

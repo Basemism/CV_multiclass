@@ -134,7 +134,7 @@ for epoch in tqdm(range(1, num_epochs+1), desc="Training Epochs"):
     # Save the best model.
     if val_loss < best_val_loss:
         best_val_loss = val_loss
-        save_path = f"unet_weights/clip_model_{dim}_epochs_{num_epochs}.pth"
+        save_path = f"clip_weights/clip_model_{dim}_epochs_{num_epochs}.pth"
 
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         torch.save(model.state_dict(), save_path)
