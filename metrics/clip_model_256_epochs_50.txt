@@ -1,0 +1,8 @@
+Pixel Accuracy: 84.38%
+Precision: 85.45%
+Recall: 84.38%
+F1 Score: 84.28%
+Mean IoU: 64.98%
+IoU Background: 71.39%
+IoU Cat: 54.40%
+IoU Dog: 53.30%

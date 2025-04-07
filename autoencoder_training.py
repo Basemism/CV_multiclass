@@ -34,7 +34,7 @@ class RawImageDataset(Dataset):
         image = np.transpose(image, (2, 0, 1))
         return torch.from_numpy(image).float(), torch.from_numpy(image).float()  # input and target are the same
 
-class myDataset(Dataset):
+class AESegDataset(Dataset):
     def __init__(self, image_paths, mask_paths, img_size):
         self.image_paths = image_paths
         self.mask_paths = mask_paths
@@ -173,8 +173,8 @@ seg_mask_paths = sorted(glob.glob(os.path.join(f'./trainval_{img_dim}/annotation
 train_img_paths, val_img_paths, train_mask_paths, val_mask_paths = train_test_split(
     seg_image_paths, seg_mask_paths, test_size=0.1, random_state=42, shuffle=True)
 
-train_dataset_seg = myDataset(train_img_paths, train_mask_paths, img_dim)
-val_dataset_seg   = myDataset(val_img_paths, val_mask_paths, img_dim)
+train_dataset_seg = AESegDataset(train_img_paths, train_mask_paths, img_dim)
+val_dataset_seg   = AESegDataset(val_img_paths, val_mask_paths, img_dim)
 train_loader_seg = DataLoader(train_dataset_seg, batch_size=batch_size, shuffle=True)
 val_loader_seg   = DataLoader(val_dataset_seg, batch_size=batch_size, shuffle=False)
 

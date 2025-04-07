@@ -86,5 +86,6 @@ class CLIPSegmentation(nn.Module):
     def forward(self, x):
         with torch.no_grad():
             features = self.encoder(x)
+        features = features.float()
         logits = self.decoder(features)
         return logits

@@ -14,3 +14,9 @@ trainval_32/images/
 trainval_32/annotations/
 
 trainval_256.zip
+
+__pycache__/
+
+models/__pycache__/
+
+clip_weights/

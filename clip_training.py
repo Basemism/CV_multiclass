@@ -47,7 +47,7 @@ def evaluate(model, loader, criterion, device):
     accuracy = correct / total_pixels
     return epoch_loss / len(loader.dataset), accuracy
 
-class myDataset(Dataset):
+class ClipDataset(Dataset):
     def __init__(self, image_paths, mask_paths, img_size):
         self.image_paths = image_paths
         self.mask_paths = mask_paths
@@ -111,8 +111,8 @@ print(f"Training images: {len(train_img_paths)}")
 print(f"Validation images: {len(val_img_paths)}")
 
 # Create dataset instances.
-train_dataset = myDataset(train_img_paths, train_mask_paths, dim)
-val_dataset   = myDataset(val_img_paths, val_mask_paths, dim)
+train_dataset = ClipDataset(train_img_paths, train_mask_paths, dim)
+val_dataset   = ClipDataset(val_img_paths, val_mask_paths, dim)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
