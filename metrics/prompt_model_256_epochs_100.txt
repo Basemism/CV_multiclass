@@ -1,0 +1,7 @@
+Pixel Accuracy: 94.77%
+Precision: 96.01%
+Recall: 94.77%
+F1 Score: 94.94%
+Mean IoU: 77.91%
+IoU Background: 83.24%
+IoU Object: 72.58%

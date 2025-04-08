@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 
 class DoubleConv(nn.Module):
-    """2 x (Convolution => BatchNorm => ReLU)"""
+    """2 x (Conv => BN => ReLU)"""
     def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
         self.double_conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            
+
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
@@ -20,20 +20,16 @@ class DoubleConv(nn.Module):
 class PromptUNet(nn.Module):
     def __init__(self, num_classes, in_channels=4):
         """
-        num_classes: segmentation classes (e.g. 0: background, 1: cat, 2: dog)
-        in_channels: 4 (RGB + prompt heat map)
+        num_classes: number of segmentation classes (for binary segmentation, use 2: 0=background, 1=object)
+        in_channels: default 4 (3 for RGB and 1 for prompt heat map)
         """
         super(PromptUNet, self).__init__()
-        # Change input channels from 3 to 4.
         self.inc = DoubleConv(in_channels, 16)
-        
-        # Downsampling layers
         self.down1 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(16, 32))
         self.down2 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(32, 64))
         self.down3 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(64, 128))
         self.down4 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(128, 256))
         
-        # Upsampling layers
         self.up1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.conv1 = DoubleConv(256, 128)
         
@@ -46,7 +42,6 @@ class PromptUNet(nn.Module):
         self.up4 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)
         self.conv4 = DoubleConv(32, 16)
         
-        # Output layer
         self.outc = nn.Conv2d(16, num_classes, kernel_size=1)
     
     def forward(self, x):

@@ -131,8 +131,7 @@ best_val_loss = float('inf') # set to infinity initially
 for epoch in tqdm(range(1, num_epochs+1), desc="Training Epochs"):
     train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
     val_loss, val_acc = evaluate(model, val_loader, criterion, device)
-    tqdm.write(f"Epoch: {epoch}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
-    
+    tqdm.write(f"Epoch: {epoch}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}") 
     # Save the best model.
     if val_loss < best_val_loss:
         best_val_loss = val_loss
