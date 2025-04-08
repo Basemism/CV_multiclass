@@ -6,9 +6,10 @@ import torch
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+# Create a heatmap with a Gaussian centered at 'point'
 def generate_prompt_heatmap(img_size, point, kernel_size=5):
     """
-    Create a heatmap with a Gaussian centered at 'point'
+
     :param img_size: (H, W)
     :param point: (row, col)
     :param kernel_size: size of Gaussian kernel
@@ -21,166 +22,219 @@ def generate_prompt_heatmap(img_size, point, kernel_size=5):
         prompt = prompt / prompt.max()
     return prompt
 
+# Resize image to target_size, convert from BGR to RGB, normalize, and concatenate prompt heat map.
 def preprocess_for_model(image, prompt_heat, target_size=256):
-    """
-    Resize image to target_size, convert from BGR to RGB, normalize, and concatenate prompt heat map.
-    :param image: input image in BGR format
-    :param prompt_heat: a (H,W) heat map with values in [0,1]
-    :param target_size: desired spatial size (assumed square)
-    :return: torch tensor of shape (1,4,target_size,target_size)
-    """
-    image_resized = cv2.resize(image, (target_size, target_size))
 
+    image_resized = cv2.resize(image, (target_size, target_size))
     image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
     image_rgb = image_rgb.astype(np.float32) / 255.0  # normalize
-    image_rgb = np.transpose(image_rgb, (2, 0, 1))  # (3, H, W)
-
+    image_rgb = np.transpose(image_rgb, (2,0,1))  # (3, H, W)
     prompt_heat = cv2.resize(prompt_heat, (target_size, target_size))
     prompt_heat = np.expand_dims(prompt_heat, axis=0)  # (1, H, W)
-
     input_tensor = np.concatenate([image_rgb, prompt_heat], axis=0)  # (4, H, W)
     input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).float().to(device)
-
     return input_tensor
 
+
+# Post-process the model output to get the predicted mask.
 def postprocess_prediction(pred_logits):
-    """
-    Convert logits to final binary mask.
-    :param pred_logits: tensor of shape (1, num_classes, H, W)
-    :return: binary mask (H, W) where pixel is 0 or 1
-    """
     pred = torch.argmax(pred_logits, dim=1).squeeze().cpu().numpy()
+
     return pred
 
+# Compute Intersection over Union (IoU) and Dice coefficient for the foreground (label=1).
+# Only consider valid pixels (where gt != ignore_index, assumed ignore index is 255).
 def compute_iou_dice(gt, pred):
-    """
-    Compute Intersection over Union (IoU) and Dice coefficient for the foreground (label=1).
-    Only consider valid pixels (where gt != ignore_index, assumed ignore index is 255).
-    :param gt: ground truth mask (H, W)
-    :param pred: predicted mask (H, W)
-    :return: iou, dice
-    """
     valid = (gt != 255)
     gt_valid = gt[valid]
     pred_valid = pred[valid]
-    
-    # Binary: foreground=1, background=0.
     intersection = np.sum((gt_valid == 1) & (pred_valid == 1))
     union = np.sum((gt_valid == 1) | (pred_valid == 1))
     iou = intersection / union if union != 0 else 0
-    
     dice = (2 * intersection) / (np.sum(gt_valid == 1) + np.sum(pred_valid == 1)) if (np.sum(gt_valid == 1) + np.sum(pred_valid == 1)) != 0 else 0
     return iou, dice
 
+# Given a binary mask (values 0,1,255), sample num_samples points where pixel equals target_value.
+def sample_prompt_points(binary_mask, num_samples, target_value):
+    indices = np.argwhere(binary_mask == target_value)
 
-import sys
+    if len(indices) == 0:
+        return []  # Return an empty list if no valid points are found
+    sampled_indices = indices[np.random.choice(len(indices), size=num_samples, replace=(len(indices) < num_samples))]
+    return [tuple(pt) for pt in sampled_indices]
 
 with open('test_image_paths.pkl', 'rb') as f:
     test_images = pickle.load(f)
-
 with open('test_trimap_paths.pkl', 'rb') as f:
     test_trimap_paths = pickle.load(f)
-
 if len(test_images) != len(test_trimap_paths):
     raise ValueError("Number of test images should match number of trimaps.")
 
 from models.prompt_unet import PromptUNet
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = PromptUNet(num_classes=2, in_channels=4).to(device)
-
 model_path = 'prompt_weights/prompt_unet_model_256_epochs_50.pth'
 model.load_state_dict(torch.load(model_path, map_location=device))
 model.eval()
 
-# -------------------------
-# Evaluation Loop
-# -------------------------
-# For evaluation, we use a simple prompt: the center of the image.
+
+# For each test image, we sample 3 foreground prompts and 3 background prompts.
+num_fg_prompts = 3
+num_bg_prompts = 3
 target_size = 256
-center_point = (target_size // 2, target_size // 2)  # (row, col)
-dummy_prompt_heat = generate_prompt_heatmap(target_size, center_point, kernel_size=5)
 
-pixel_accs = []
-precisions = []
-recalls = []
-f1_scores = []
-ious = []
-dices = []
+# Containers for metrics for foreground and background evaluations.
+fg_accs = []
+fg_precs = []
+fg_recs = []
+fg_f1s = []
+fg_ious = []
+fg_dices = []
 
+bg_accs = []
+bg_precs = []
+bg_recs = []
+bg_f1s = []
+bg_ious = []
+bg_dices = []
+
+# Process each test image.
 for img_path, mask_path in tqdm(zip(test_images, test_trimap_paths), total=len(test_images), desc="Evaluating"):
-    # Load image.
     image = cv2.imread(img_path)
     if image is None:
         continue
-    # Preprocess with dummy prompt.
-    input_tensor = preprocess_for_model(image, dummy_prompt_heat, target_size=target_size)
     
-    # Run the model.
-    with torch.no_grad():
-        logits = model(input_tensor)
-    pred_mask = postprocess_prediction(logits)  # (256, 256)
-
-    # Load ground truth mask.
-    gt_mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-    if gt_mask is None:
+    # Load and process ground truth trimap.
+    gt = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if gt is None:
         continue
-    gt_mask = cv2.resize(gt_mask, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
-    
-    # Remap ground truth:
-    # Original: 1 = foreground, 2 = background, 3 = unclassified.
-    # For binary segmentation: map foreground (1) -> 1, background (2) -> 0, unclassified (3) -> ignore (255)
-    binary_gt = np.full(gt_mask.shape, 255, dtype=np.uint8)
-    binary_gt[gt_mask == 2] = 0
-    binary_gt[gt_mask == 1] = 1
+    gt = cv2.resize(gt, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
+    # Remap ground truth: foreground (1) -> 1, background (2) -> 0, unclassified (3) -> 255.
+    binary_gt = np.full(gt.shape, 255, dtype=np.uint8)
+    binary_gt[gt == 2] = 0
+    binary_gt[gt == 1] = 1
 
-    # Flatten valid pixels (non 255).
-    valid = (binary_gt != 255)
-    gt_flat = binary_gt[valid]
-    pred_flat = pred_mask[valid]
-    
-    # Compute pixel accuracy and other metrics.
-    if len(gt_flat) == 0:
+    # Sample foreground and background prompt points.
+    fg_points = sample_prompt_points(binary_gt, num_fg_prompts, target_value=1)
+    bg_points = sample_prompt_points(binary_gt, num_bg_prompts, target_value=0)
+
+    if len(fg_points) == 0 or len(bg_points) == 0:
+        print(f"\nSkipping image {img_path} due to insufficient prompt points.")
         continue
-    acc = accuracy_score(gt_flat, pred_flat)
-    prec = precision_score(gt_flat, pred_flat, average="binary", zero_division=0)
-    rec = recall_score(gt_flat, pred_flat, average="binary", zero_division=0)
-    f1 = f1_score(gt_flat, pred_flat, average="binary", zero_division=0)
-    iou, dice = compute_iou_dice(binary_gt, pred_mask)
-    
-    pixel_accs.append(acc)
-    precisions.append(prec)
-    recalls.append(rec)
-    f1_scores.append(f1)
-    ious.append(iou)
-    dices.append(dice)
 
-# Compute means.
-mean_acc = np.mean(pixel_accs) * 100
-mean_prec = np.mean(precisions) * 100
-mean_rec = np.mean(recalls) * 100
-mean_f1 = np.mean(f1_scores) * 100
-mean_iou = np.mean(ious) * 100
-mean_dice = np.mean(dices) * 100
+    # For foreground, expected target is the original binary_gt.
+    for point in fg_points:
+        prompt_heat = generate_prompt_heatmap(target_size, point, kernel_size=5)
+        input_tensor = preprocess_for_model(image, prompt_heat, target_size=target_size)
+        with torch.no_grad():
+            logits = model(input_tensor)
+        pred_mask = postprocess_prediction(logits)
+        # Use entire binary_gt as expected.
+        expected = binary_gt.copy()
+        
+        valid = (expected != 255)
+        if np.sum(valid)==0:
+            continue
+        gt_flat = expected[valid]
+        pred_flat = pred_mask[valid]
+        acc = accuracy_score(gt_flat, pred_flat)
+        prec = precision_score(gt_flat, pred_flat, average="binary", zero_division=0)
+        rec = recall_score(gt_flat, pred_flat, average="binary", zero_division=0)
+        f1 = f1_score(gt_flat, pred_flat, average="binary", zero_division=0)
+        iou, dice = compute_iou_dice(expected, pred_mask)
+        
+        fg_accs.append(acc)
+        fg_precs.append(prec)
+        fg_recs.append(rec)
+        fg_f1s.append(f1)
+        fg_ious.append(iou)
+        fg_dices.append(dice)
+        
+    # For background prompts, expected target is all zeros.
+    expected_bg = np.zeros_like(binary_gt, dtype=np.uint8)
+    for point in bg_points:
+        prompt_heat = generate_prompt_heatmap(target_size, point, kernel_size=5)
+        input_tensor = preprocess_for_model(image, prompt_heat, target_size=target_size)
+        with torch.no_grad():
+            logits = model(input_tensor)
+        pred_mask = postprocess_prediction(logits)
+        valid = (expected_bg != 255)  # In a blank target, all pixels are valid.
+        gt_flat = expected_bg[valid]
+        pred_flat = pred_mask[valid]
+        acc = accuracy_score(gt_flat, pred_flat)
+        
+        # Handle cases where ground truth and predictions are all zeros
+        if np.sum(gt_flat) == 0 and np.sum(pred_flat) == 0:
+            prec, rec, f1, iou, dice = 1.0, 1.0, 1.0, 1.0, 1.0
+        else:
+            prec = precision_score(gt_flat, pred_flat, average="binary", zero_division=0)
+            rec = recall_score(gt_flat, pred_flat, average="binary", zero_division=0)
+            f1 = f1_score(gt_flat, pred_flat, average="binary", zero_division=0)
+            iou, dice = compute_iou_dice(expected_bg, pred_mask)
+        
+        bg_accs.append(acc)
+        bg_precs.append(prec)
+        bg_recs.append(rec)
+        bg_f1s.append(f1)
+        bg_ious.append(iou)
+        bg_dices.append(dice)
+
+# Compute mean metrics per test set.
+mean_fg_acc = np.mean(fg_accs) * 100
+mean_fg_prec = np.mean(fg_precs) * 100
+mean_fg_rec = np.mean(fg_recs) * 100
+mean_fg_f1 = np.mean(fg_f1s) * 100
+mean_fg_iou = np.mean(fg_ious) * 100
+mean_fg_dice = np.mean(fg_dices) * 100
+
+mean_bg_acc = np.mean(bg_accs) * 100
+mean_bg_prec = np.mean(bg_precs) * 100
+mean_bg_rec = np.mean(bg_recs) * 100
+mean_bg_f1 = np.mean(bg_f1s) * 100
+mean_bg_iou = np.mean(bg_ious) * 100
+mean_bg_dice = np.mean(bg_dices) * 100
 
 # Print summarized results.
-print("\n--- Evaluation Results ---")
-print(f"Mean Pixel Accuracy: {mean_acc:.2f}%")
-print(f"Mean Precision: {mean_prec:.2f}%")
-print(f"Mean Recall: {mean_rec:.2f}%")
-print(f"Mean F1 Score: {mean_f1:.2f}%")
-print(f"Mean IoU: {mean_iou:.2f}%")
-print(f"Mean Dice Coefficient: {mean_dice:.2f}%")
+print("\n--- Evaluation Results for Foreground Prompts ---")
+print(f"Mean Pixel Accuracy: {mean_fg_acc:.2f}%")
+print(f"Mean Precision: {mean_fg_prec:.2f}%")
+print(f"Mean Recall: {mean_fg_rec:.2f}%")
+print(f"Mean F1 Score: {mean_fg_f1:.2f}%")
+print(f"Mean IoU: {mean_fg_iou:.2f}%")
+print(f"Mean Dice Coefficient: {mean_fg_dice:.2f}%")
+
+print("\n--- Evaluation Results for Background Prompts ---")
+print(f"Mean Pixel Accuracy: {mean_bg_acc:.2f}%")
+print(f"Mean Precision: {mean_bg_prec:.2f}%")
+print(f"Mean Recall: {mean_bg_rec:.2f}%")
+print(f"Mean F1 Score: {mean_bg_f1:.2f}%")
+print(f"Mean IoU: {mean_bg_iou:.2f}%")
+print(f"Mean Dice Coefficient: {mean_bg_dice:.2f}%")
+
+# Summary table.
+print("\nSummary Table:")
+print("{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}".format("Test", "Acc", "Prec", "Rec", "F1", "IoU", "Dice"))
+print("{:<20}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}".format(
+    "Foreground", mean_fg_acc, mean_fg_prec, mean_fg_rec, mean_fg_f1, mean_fg_iou, mean_fg_dice))
+print("{:<20}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}".format(
+    "Background", mean_bg_acc, mean_bg_prec, mean_bg_rec, mean_bg_f1, mean_bg_iou, mean_bg_dice))
 
 metrics_filename = 'metrics/prompt_unet_model_256_epochs_50.txt'
-
 with open(metrics_filename, 'w') as f:
-    f.write("\n--- Evaluation Results (Averaged over multiple prompts per image) ---")
-    f.write(f"Mean Pixel Accuracy: {mean_acc:.2f}%")
-    f.write(f"Mean Precision: {mean_prec:.2f}%")
-    f.write(f"Mean Recall: {mean_rec:.2f}%")
-    f.write(f"Mean F1 Score: {mean_f1:.2f}%")
-    f.write(f"Mean IoU: {mean_iou:.2f}%")
-    f.write(f"Mean Dice Coefficient: {mean_dice:.2f}%")
-
+    f.write("\n--- Evaluation Results for Foreground Prompts ---\n")
+    f.write(f"Mean Pixel Accuracy: {mean_fg_acc:.2f}%\n")
+    f.write(f"Mean Precision: {mean_fg_prec:.2f}%\n")
+    f.write(f"Mean Recall: {mean_fg_rec:.2f}%\n")
+    f.write(f"Mean F1 Score: {mean_fg_f1:.2f}%\n")
+    f.write(f"Mean IoU: {mean_fg_iou:.2f}%\n")
+    f.write(f"Mean Dice Coefficient: {mean_fg_dice:.2f}%\n")
+    
+    f.write("\n--- Evaluation Results for Background Prompts ---\n")
+    f.write(f"Mean Pixel Accuracy: {mean_bg_acc:.2f}%\n")
+    f.write(f"Mean Precision: {mean_bg_prec:.2f}%\n")
+    f.write(f"Mean Recall: {mean_bg_rec:.2f}%\n")
+    f.write(f"Mean F1 Score: {mean_bg_f1:.2f}%\n")
+    f.write(f"Mean IoU: {mean_bg_iou:.2f}%\n")
+    f.write(f"Mean Dice Coefficient: {mean_bg_dice:.2f}%\n")
+    
 print(f"Metrics saved to {metrics_filename}")

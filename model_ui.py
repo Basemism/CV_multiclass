@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--input', type=str,  default='./Example.jpg', help='input image')
 parser.add_argument('--gt', type=str, help='ground truth image')
-parser.add_argument('--category', type=int, help='1 = cat 2 = dog')
+parser.add_argument('--category', type=int, default=1, help='1 = cat 2 = dog')
 parser.add_argument('--output', type=str, help='output filename')
 parser.add_argument('--model', type=str, default='unet', help='model name')
 
@@ -116,7 +116,10 @@ if include_gt:
     
     gt_remapped = np.full(ground_truth.shape, 3 , dtype=np.uint8)
     gt_remapped[ground_truth == 2] = 0
-    gt_remapped[ground_truth == 1] = args.category
+    if args.category is not None:
+        gt_remapped[ground_truth == 1] = args.category
+    else:
+        raise ValueError("The '--category' argument must be provided.")
 
     ax[2].imshow(gt_remapped, cmap=cmap, vmin=0, vmax=3)
     ax[2].set_title('Ground Truth')
