@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
+# 2 x (Convolution => BatchNorm => ReLU)
 class DoubleConv(nn.Module):
-    """2 x (Convolution => BatchNorm => ReLU)"""
     def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
         self.double_conv = nn.Sequential(

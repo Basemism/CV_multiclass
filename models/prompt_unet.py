@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
+# 2 x (Conv => BN => ReLU)
 class DoubleConv(nn.Module):
-    """2 x (Conv => BN => ReLU)"""
     def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
         self.double_conv = nn.Sequential(
@@ -17,12 +17,11 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
+# num_classes: number of segmentation classes (for binary segmentation, use 2: 0=background, 1=object)
+# in_channels: default 4 (3 for RGB and 1 for prompt heat map)
 class PromptUNet(nn.Module):
     def __init__(self, num_classes, in_channels=4):
-        """
-        num_classes: number of segmentation classes (for binary segmentation, use 2: 0=background, 1=object)
-        in_channels: default 4 (3 for RGB and 1 for prompt heat map)
-        """
+
         super(PromptUNet, self).__init__()
         self.inc = DoubleConv(in_channels, 16)
         self.down1 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(16, 32))

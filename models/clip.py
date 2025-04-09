@@ -49,13 +49,13 @@ class SegmentationDecoder(nn.Module):
         logits = self.out_conv(x)
         return logits
 
+
+# Projects a latent vector of shape [B, latent_dim] into a spatial feature map,
+# then decodes it into a segmentation map with num_classes channels.
+# Assumes the final segmentation map is image_size x image_size.
 class LatentSegmentationDecoder(nn.Module):
     def __init__(self, num_classes, latent_dim=512, image_size=224):
-        """
-        Projects a latent vector of shape [B, latent_dim] into a spatial feature map,
-        then decodes it into a segmentation map with num_classes channels.
-        Assumes the final segmentation map is image_size x image_size.
-        """
+
         super().__init__()
         self.image_size = image_size
         # Calculate spatial dimensions after dividing by 8.
