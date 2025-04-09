@@ -16,11 +16,9 @@ model_path = 'prompt_weights/prompt_unet_model_256_epochs_50.pth'
 model.load_state_dict(torch.load(model_path, map_location=device))
 model.eval()
 
-# ---------------------------
-# Helper Functions
-# ---------------------------
+# Create a heatmap with a Gaussian centered at 'point'.
 def create_prompt_heatmap(img_shape, point, sigma=5):
-    """Create a heatmap with a Gaussian centered at 'point'."""
+
     heatmap = np.zeros(img_shape, dtype=np.float32)
     heatmap[point[0], point[1]] = 1.0
     heatmap = gaussian_filter(heatmap, sigma=sigma)
@@ -28,12 +26,10 @@ def create_prompt_heatmap(img_shape, point, sigma=5):
         heatmap = heatmap / heatmap.max()
     return heatmap
 
+# Given an image (H,W,3) in BGR and a prompt heatmap (H,W) in [0,1],
+# convert image to RGB, normalize to [0,1], resize to (256,256),
+# and concatenate the prompt as a fourth channel.
 def preprocess_for_model(image, prompt_heat):
-    """
-    Given an image (H,W,3) in BGR and a prompt heatmap (H,W) in [0,1],
-    convert image to RGB, normalize to [0,1], resize to (256,256),
-    and concatenate the prompt as a fourth channel.
-    """
     image = cv2.resize(image, (256,256))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = image.astype(np.float32) / 255.0
@@ -44,14 +40,13 @@ def preprocess_for_model(image, prompt_heat):
     input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).float().to(device)
     return input_tensor
 
+# Convert model output logits to binary mask."""
 def postprocess_prediction(pred):
-    """Convert model output logits to binary mask."""
+
     pred = torch.argmax(pred, dim=1).squeeze().cpu().numpy()
     return pred
 
-# ---------------------------
-# GUI Code using Tkinter
-# ---------------------------
+
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
@@ -66,23 +61,37 @@ class SegmentationGUI:
         self.photo = None          # PhotoImage for display
         self.prompt_point = None   # (row, col) for the prompt point
         self.prompt_marker = None  # Canvas item ID for prompt marker
+        self.gt_mask = None        # Ground truth mask
         
         # Create UI elements.
-        self.btn_load = tk.Button(master, text="Load Image", command=self.load_image)
-        self.btn_load.pack(pady=5)
+        top_frame = tk.Frame(master)
+        top_frame.pack(pady=5)
+        
+        self.btn_load = tk.Button(top_frame, text="Load Image", command=self.load_image)
+        self.btn_load.pack(side=tk.LEFT, padx=5)
+        
+        self.btn_load_gt = tk.Button(top_frame, text="Load GT Mask", command=self.load_gt_mask)
+        self.btn_load_gt.pack(side=tk.LEFT, padx=5)
+        
+        self.btn_background_gt = tk.Button(top_frame, text="Background GT", command=self.create_background_gt)
+        self.btn_background_gt.pack(side=tk.LEFT, padx=5)
         
         self.canvas = tk.Canvas(master, width=256, height=256, bg='gray')
-        self.canvas.pack()
+        self.canvas.pack(pady=10)
         self.canvas.bind("<Button-1>", self.on_click)
         
-        self.btn_segment = tk.Button(master, text="Segment", command=self.segment_image, state=tk.DISABLED)
-        self.btn_segment.pack(pady=5)
+        bottom_frame = tk.Frame(master)
+        bottom_frame.pack(pady=5)
         
-        self.btn_save = tk.Button(master, text="Save Figure", command=self.save_figure, state=tk.DISABLED)
-        self.btn_save.pack(pady=5)
+        self.btn_segment = tk.Button(bottom_frame, text="Segment", command=self.segment_image, state=tk.DISABLED)
+        self.btn_segment.pack(side=tk.LEFT, padx=5)
+        
+        self.btn_save = tk.Button(bottom_frame, text="Save Figure", command=self.save_figure, state=tk.DISABLED)
+        self.btn_save.pack(side=tk.LEFT, padx=5)
         
     def load_image(self):
         # Reset prior state.
+        self.gt_mask = None
         self.prompt_point = None
         self.prompt_marker = None
         self.btn_segment.config(state=tk.DISABLED)
@@ -104,6 +113,24 @@ class SegmentationGUI:
         self.canvas.config(width=256, height=256)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
         self.master.title(f"Loaded: {file_path}")
+    
+    def load_gt_mask(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+        if not file_path:
+            return
+        # Load GT mask using OpenCV.
+        self.gt_mask = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+        if self.gt_mask is None:
+            messagebox.showerror("Error", "Could not load GT mask.")
+            return
+        # Resize GT mask to match the display size.
+        self.gt_mask = cv2.resize(self.gt_mask, (256, 256))
+        messagebox.showinfo("Loaded", "Ground truth mask loaded successfully.")
+    
+    def create_background_gt(self):
+        # Create a completely black mask.
+        self.gt_mask = np.zeros((256, 256), dtype=np.uint8)
+        messagebox.showinfo("Created", "Background ground truth mask created successfully.")
     
     def on_click(self, event):
         if self.image is None:
@@ -128,7 +155,6 @@ class SegmentationGUI:
         with torch.no_grad():
             output = model(input_tensor)
         pred_mask = postprocess_prediction(output)
-        # print(np.unique(pred_mask))
         self.show_visualization(prompt_heat, pred_mask)
         self.btn_save.config(state=tk.NORMAL)
     
@@ -137,7 +163,8 @@ class SegmentationGUI:
         image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         image_rgb = cv2.resize(image_rgb, (256,256))
         # Create a Matplotlib figure.
-        self.fig, axs = plt.subplots(1, 3, figsize=(12,4))
+        num_cols = 4 if self.gt_mask is not None else 3
+        self.fig, axs = plt.subplots(1, num_cols, figsize=(16,4))
         axs[0].imshow(image_rgb)
         axs[0].set_title("Original Image")
         axs[0].axis("off")
@@ -147,6 +174,15 @@ class SegmentationGUI:
         axs[2].imshow(pred_mask, cmap='gray')
         axs[2].set_title("Segmentation")
         axs[2].axis("off")
+        if self.gt_mask is not None:
+            # Remap ground truth: foreground (1) -> white, background (2) -> black, unclassified (3) -> gray.
+            gt_mask_color = np.zeros_like(self.gt_mask, dtype=np.uint8)
+            gt_mask_color[self.gt_mask == 1] = 255
+            gt_mask_color[self.gt_mask == 2] = 0
+            gt_mask_color[self.gt_mask == 3] = 127
+            axs[3].imshow(gt_mask_color, cmap='gray')
+            axs[3].set_title("Ground Truth Mask")
+            axs[3].axis("off")
         plt.tight_layout()
         plt.show()
     
