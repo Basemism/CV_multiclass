@@ -128,7 +128,7 @@ class SegmentationGUI:
         with torch.no_grad():
             output = model(input_tensor)
         pred_mask = postprocess_prediction(output)
-        print(np.unique(pred_mask))
+        # print(np.unique(pred_mask))
         self.show_visualization(prompt_heat, pred_mask)
         self.btn_save.config(state=tk.NORMAL)
     

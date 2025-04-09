@@ -1,16 +1,16 @@
 
 --- Evaluation Results for Foreground Prompts ---
-Mean Pixel Accuracy: 84.37%
-Mean Precision: 92.46%
-Mean Recall: 64.07%
-Mean F1 Score: 71.77%
-Mean IoU: 60.76%
-Mean Dice Coefficient: 71.77%
+Mean Pixel Accuracy: 84.61%
+Mean Precision: 92.59%
+Mean Recall: 64.80%
+Mean F1 Score: 72.41%
+Mean IoU: 61.41%
+Mean Dice Coefficient: 72.41%
 
 --- Evaluation Results for Background Prompts ---
-Mean Pixel Accuracy: 98.61%
-Mean Precision: 0.00%
-Mean Recall: 0.00%
-Mean F1 Score: 0.00%
-Mean IoU: 0.00%
-Mean Dice Coefficient: 0.00%
+Mean Pixel Accuracy: 98.63%
+Mean Precision: 59.56%
+Mean Recall: 59.56%
+Mean F1 Score: 59.56%
+Mean IoU: 59.56%
+Mean Dice Coefficient: 59.56%
