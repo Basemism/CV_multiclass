@@ -10,9 +10,6 @@ from skimage.util import random_noise
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
-"""
-Parsing for Command Line Arguments
-"""
 num_seg_classes = 3  # 0: background, 1: cat, 2: dog
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=256, help='image dimension')
@@ -30,10 +27,6 @@ model = UNet(num_classes=3).to(device)
 model.load_state_dict(torch.load(weight_file, map_location=device))
 model.eval()
 
-"""
-Loading the Test Images and Masks 
-"""
-
 # Load test image and trimap paths.
 with open('test_image_paths.pkl', 'rb') as f:
     test_images = pickle.load(f)
@@ -45,9 +38,7 @@ if len(test_images) != len(test_trimap_paths):
 
 print(f"Found {len(test_images)} test images.")
 
-"""
-Helper Functions for Pre-processing and Post-processing
-"""
+
 #  Preprocess the input image to match the model's input dimensions and format.
 def preprocess_image(image:np.ndarray, dim, device):
     # Preprocess the image
@@ -66,10 +57,7 @@ def postprocess_output(output, image_dims):
     output = cv2.resize(output, (image_dims[1], image_dims[0]), interpolation=cv2.INTER_NEAREST)
     return output
 
-
-"""
-!!! Perturbation Methods !!!
-"""
+# Perturbation Functions:
 
 def add_gaussian_pixel_noise(image:np.ndarray, idx:int) -> np.ndarray:
     noise_array = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
@@ -161,10 +149,7 @@ def add_salt_and_pepper(image: np.ndarray, idx: int) -> np.ndarray:
 
     return noisy_image
 
-"""
-Calculating Dice Score Over Entire Test Set
-"""
-
+# Calculating Dice Score Over Entire Test Set
 def get_valid_masks(idx, perturbation_func, p_index):
     # Load the image.
     image = cv2.imread(test_images[idx])
@@ -298,15 +283,9 @@ def main():
         f.write(f"Increase Occlusion: {to_float_list(image_occlusion_dice)}\n")
         f.write(f"Salt and Pepper Noise: {to_float_list(image_salt_and_pepper_dice)}\n")
 
+# Reads the robustness metrics file, extracts the dice scores for the specified metric, and plots the dice score versus perturbation level.
 def plot_graph(metric_name, metrics_filename):
-    """
-    Reads the robustness metrics file, extracts the dice scores for the specified metric,
-    and plots the dice score versus perturbation level.
 
-    Parameters:
-        metric_name (str): The key for the perturbation (e.g., "Gaussian Noise")
-        metrics_filename (str): Path to the file with saved metrics.
-    """
     import matplotlib.pyplot as plt
 
     # Read the file and find the line that starts with the metric name.
@@ -353,10 +332,8 @@ def plot_graph(metric_name, metrics_filename):
     # Save the plot into robustness folder with high resolution.
     plt.savefig(f"./robustness/{metric_name}.png", dpi=300)
 
+# Plot all metrics from the robustness file.
 def plot_all():
-    """
-    Plot all metrics from the robustness file.
-    """
     with open(metrics_filename, 'r') as f:
         lines = f.readlines()
 
@@ -364,38 +341,38 @@ def plot_all():
         metric_name = line.split(":")[0]
         plot_graph(metric_name, metrics_filename)
 
-def plot_example_images():
-    """
-    For each of the perturbation methods, show the perturbed image.
-    """
-    image = cv2.imread(test_images[2500])
-    # plot the image as the "original image"
+# Plotting example images with perturbations
+def plot_example_images(idx=0):
+
+    if idx < 0 or idx >= len(test_images):
+        raise ValueError("Index out of range. Please provide a valid index.")
+
+    image = cv2.imread(test_images[idx])
     plot_img(image, title="Original Image")
-    #
-    # # For each perturbation, display only the perturbed image with a title.
-    # perturbed_image = add_gaussian_pixel_noise(image, 9)
-    # plot_img(perturbed_image, title="Gaussian Noise")
-    #
-    # perturbed_image = add_gaussian_blur(image, 9)
-    # plot_img(perturbed_image, title="Gaussian Blur")
-    #
-    # perturbed_image = increase_contrast(image, 9)
-    # plot_img(perturbed_image, title="Increase Contrast")
-    #
-    # perturbed_image = decrease_contrast(image, 9)
-    # plot_img(perturbed_image, title="Decrease Contrast")
-    #
-    # perturbed_image = increase_brightness(image, 9)
-    # plot_img(perturbed_image, title="Increase Brightness")
-    #
-    # perturbed_image = decrease_brightness(image, 9)
-    # plot_img(perturbed_image, title="Decrease Brightness")
-    #
-    # perturbed_image = increase_occlusion(image, 9)
-    # plot_img(perturbed_image, title="Increase Occlusion")
-    #
-    # perturbed_image = add_salt_and_pepper(image, 9)
-    # plot_img(perturbed_image, title="Salt and Pepper Noise")
+    
+    perturbed_image = add_gaussian_pixel_noise(image, idx)
+    plot_img(perturbed_image, title="Gaussian Noise")
+    
+    perturbed_image = add_gaussian_blur(image, idx)
+    plot_img(perturbed_image, title="Gaussian Blur")
+    
+    perturbed_image = increase_contrast(image, idx)
+    plot_img(perturbed_image, title="Increase Contrast")
+    
+    perturbed_image = decrease_contrast(image, idx)
+    plot_img(perturbed_image, title="Decrease Contrast")
+    
+    perturbed_image = increase_brightness(image, idx)
+    plot_img(perturbed_image, title="Increase Brightness")
+    
+    perturbed_image = decrease_brightness(image, idx)
+    plot_img(perturbed_image, title="Decrease Brightness")
+    
+    perturbed_image = increase_occlusion(image, idx)
+    plot_img(perturbed_image, title="Increase Occlusion")
+    
+    perturbed_image = add_salt_and_pepper(image, idx)
+    plot_img(perturbed_image, title="Salt and Pepper Noise")
 
 def plot_img_img(img_a, img_b, title_a="Original", title_b="Perturbed"):
     """
@@ -416,9 +393,6 @@ def plot_img_img(img_a, img_b, title_a="Original", title_b="Perturbed"):
     plt.savefig(f"./robustness/{title_a}_{title_b}.png")
 
 def plot_img(img, title="Perturbed"):
-    """
-    Plot one image.
-    """
     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
     axs.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     axs.set_title(title)

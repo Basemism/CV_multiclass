@@ -14,11 +14,9 @@ import numpy as np
 
 from models.prompt_unet import PromptUNet
 
+# Create a heatmap with a Gaussian centered at 'point'
 def generate_prompt_heatmap(img_size, point, kernel_size=5):
-    """
-    Creates a heatmap of shape (img_size, img_size) with a Gaussian centered at 'point'.
-    point: tuple (row, col)
-    """
+
     prompt = np.zeros((img_size, img_size), dtype=np.float32)
     prompt[point[0], point[1]] = 1.0
     prompt = cv2.GaussianBlur(prompt, (kernel_size, kernel_size), 0)
@@ -29,13 +27,6 @@ def generate_prompt_heatmap(img_size, point, kernel_size=5):
 
 class PromptDatasetBinary(Dataset):
     def __init__(self, image_paths, mask_paths, img_size, samples_per_image=5):
-        """
-        image_paths: List of image file paths.
-        mask_paths: List of corresponding segmentation mask file paths.
-        img_size: Desired image size.
-        samples_per_image: How many prompt samples to generate per image.
-        The effective dataset length is len(image_paths) * samples_per_image.
-        """
         self.image_paths = image_paths
         self.mask_paths = mask_paths
         self.img_size = img_size

@@ -11,10 +11,6 @@ from tqdm import tqdm
 from models.autoencoder import Autoencoder, SegmentationModel
 
 class RawImageDataset(Dataset):
-    """
-    Dataset for training the autoencoder.
-    Loads raw images from a directory, resizes and normalizes them.
-    """
     def __init__(self, image_paths, img_size):
         self.image_paths = image_paths
         self.img_size = img_size
@@ -136,7 +132,7 @@ img_dim = 256
 batch_size = 16
 num_epochs_ae = 50
 num_epochs_seg = 50
-num_seg_classes = 3  # e.g., background, cat, dog
+num_seg_classes = 3 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Get image paths for autoencoder training.
@@ -181,7 +177,7 @@ val_loader_seg   = DataLoader(val_dataset_seg, batch_size=batch_size, shuffle=Fa
 # Build segmentation model using the frozen encoder.
 seg_model = SegmentationModel(encoder=autoencoder.encoder, num_classes=num_seg_classes).to(device)
 optimizer_seg = optim.Adam(seg_model.decoder.parameters(), lr=1e-3)  # only train decoder
-# Use ignore_index=255 if needed (e.g., for unclassified regions).
+
 criterion_seg = nn.CrossEntropyLoss(ignore_index=255)
 
 print("Training Segmentation Model...")

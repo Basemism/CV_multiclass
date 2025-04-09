@@ -7,10 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
-from models.autoencoder import Autoencoder  # Make sure this module exists.
+from models.autoencoder import Autoencoder
 
+# Load an image from disk, convert to RGB, resize and normalize
 def load_image(image_path, img_dim):
-    """Load an image from disk, convert to RGB, resize and normalize."""
+   
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError(f"Image not found: {image_path}")
@@ -19,12 +20,13 @@ def load_image(image_path, img_dim):
     image = image.astype(np.float32) / 255.0  # Normalize to [0,1]
     return image
 
+# Convert image (H,W,3) to tensor (1,3,H,W).
 def preprocess_for_model(image):
-    """Convert image (H,W,3) to tensor (1,3,H,W)."""
     image = np.transpose(image, (2, 0, 1))  # CHW format
     image_tensor = torch.from_numpy(image).float().unsqueeze(0)
     return image_tensor
 
+# Visualize the latent representation of images using the autoencoder.
 def visualize_latent(autoencoder, image_paths, img_dim, device, num_samples=5, num_latent_channels=8):
     autoencoder.eval()
     fig, axes = plt.subplots(num_samples, num_latent_channels + 1, figsize=(3 * (num_latent_channels + 1), 3 * num_samples))

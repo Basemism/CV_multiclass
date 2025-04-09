@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import argparse
 import pickle
 
-from models.autoencoder import Autoencoder  # Ensure this file exists and contains your Autoencoder definition.
+from models.autoencoder import Autoencoder
 
 def load_image(image_path, img_dim):
     """Load an image from disk, convert to RGB, resize and normalize."""
@@ -28,24 +28,16 @@ def preprocess_for_model(image):
 def visualize_reconstruction(autoencoder, image_paths, img_dim, device, num_samples=5):
     autoencoder.eval()
     fig, axes = plt.subplots(num_samples, 2, figsize=(8, 4*num_samples))
-    
-    # If there's only one sample, make axes 2D.
-    if num_samples == 1:
-        axes = np.expand_dims(axes, axis=0)
-    
+
     with torch.no_grad():
         for idx, image_path in enumerate(image_paths[:num_samples]):
             # Load and preprocess image.
             orig_img = load_image(image_path, img_dim)
             input_tensor = preprocess_for_model(orig_img).to(device)
             
-            # Get reconstruction from the autoencoder.
             reconstructed = autoencoder(input_tensor)
-            # Move back to CPU and convert to numpy.
             reconstructed = reconstructed.squeeze(0).cpu().numpy()
-            # Convert from CHW to HWC.
             reconstructed = np.transpose(reconstructed, (1, 2, 0))
-            # Clip values to [0,1] (in case of slight deviations)
             reconstructed = np.clip(reconstructed, 0, 1)
             
             # Plot original image and reconstructed image.
@@ -70,7 +62,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Instantiate and load the autoencoder.
-    latent_dim = 64  # Make sure this matches what you used during training.
+    latent_dim = 64
     autoencoder = Autoencoder(latent_dim=latent_dim).to(device)
     autoencoder.load_state_dict(torch.load(args.weights, map_location=device))
     

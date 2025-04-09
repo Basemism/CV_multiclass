@@ -8,6 +8,7 @@ from matplotlib.colors import ListedColormap
 
 from models.unet import UNet
 from models.autoencoder import Autoencoder, SegmentationModel
+from models.clip import CLIPSegmentation
 
 def preprocess_image(image, dim, device):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -24,7 +25,7 @@ def postprocess_output(output, image_dims):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--input', type=str,  default='./Example.jpg', help='input image')
+parser.add_argument('--input', type=str,  default='./Cat.jpg', help='input image')
 parser.add_argument('--gt', type=str, help='ground truth image')
 parser.add_argument('--category', type=int, default=1, help='1 = cat 2 = dog')
 parser.add_argument('--output', type=str, help='output filename')
@@ -62,7 +63,6 @@ elif args.model == 'ae':
     model.eval()
 
 elif args.model == 'clip':
-    from models.clip import CLIPSegmentation
     model = CLIPSegmentation(num_classes=3).to(device)
 
     model.load_state_dict(torch.load('./clip_weights/clip_model_256_epochs_50.pth', map_location=device))
@@ -70,8 +70,6 @@ elif args.model == 'clip':
     model.eval()
 
     dim = 224
-
-
 
 # Load the image
 image = cv2.imread(args.input)

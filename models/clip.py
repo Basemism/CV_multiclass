@@ -10,7 +10,6 @@ class CLIPEncoder(nn.Module):
         self.clip_model, self.preprocess = clip.load("ViT-B/32", device=device) # frozen CLIP backbone
 
     def forward(self, x):
-        # Check if input is a batch of images
         if x.dim() == 3:
             x = x.unsqueeze(0)
         return self.clip_model.encode_image(x)
@@ -52,7 +51,6 @@ class SegmentationDecoder(nn.Module):
 
 # Projects a latent vector of shape [B, latent_dim] into a spatial feature map,
 # then decodes it into a segmentation map with num_classes channels.
-# Assumes the final segmentation map is image_size x image_size.
 class LatentSegmentationDecoder(nn.Module):
     def __init__(self, num_classes, latent_dim=512, image_size=224):
 
@@ -60,7 +58,6 @@ class LatentSegmentationDecoder(nn.Module):
         self.image_size = image_size
         # Calculate spatial dimensions after dividing by 8.
         spatial_dim = image_size // 8  # For image_size=224, spatial_dim=28
-        # Fully connected layer to project latent vector to a flattened feature map
         self.fc = nn.Linear(latent_dim, 64 * spatial_dim * spatial_dim)
         # Use the provided segmentation decoder, which expects input shape [B,64,spatial_dim,spatial_dim]
         self.decoder = SegmentationDecoder(num_classes)

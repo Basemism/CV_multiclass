@@ -42,8 +42,7 @@ class Autoencoder(nn.Module):
 class SegmentationDecoder(nn.Module):
     def __init__(self, num_classes):
         super(SegmentationDecoder, self).__init__()
-        # A simple decoder that upsamples from the encoder output resolution to full size.
-        # Here, we assume the encoder output is of size (B,64,H/8,W/8).
+        # Decoder upsamples from the encoder output resolution to full size.
         self.up1 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)  # H/4, W/4
         self.conv1 = nn.Sequential(
             nn.Conv2d(32, 32, kernel_size=3, padding=1),

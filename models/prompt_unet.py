@@ -17,8 +17,6 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-# num_classes: number of segmentation classes (for binary segmentation, use 2: 0=background, 1=object)
-# in_channels: default 4 (3 for RGB and 1 for prompt heat map)
 class PromptUNet(nn.Module):
     def __init__(self, num_classes, in_channels=4):
 

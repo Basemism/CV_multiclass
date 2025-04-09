@@ -91,20 +91,15 @@ for i in tqdm(range(len(test_images)), desc="Predicting and Evaluating"):
         gt_mask = cv2.resize(gt_mask, (image_dims[1], image_dims[0]), interpolation=cv2.INTER_NEAREST)
 
     # Remap ground truth.
-    # Original trimap: 1 = foreground, 2 = background, 3 = unclassified.
-    # After subtracting 1, we have: 0 = foreground, 1 = background, 2 = unclassified.
-    # Determine image type from filename (cat if first letter uppercase, else dog).
     filename = os.path.basename(test_images[i])
     if filename[0].isupper():
         fg_class = 1  # cat
     else:
         fg_class = 2  # dog
 
-    # Create remapped ground truth: background (original 1) → 0, foreground (original 0) → fg_class,
-    # and unclassified (original 2) → 255 (to be ignored).
     gt_remapped = np.full(gt_mask.shape, 255, dtype=np.uint8)
-    gt_remapped[gt_mask == 2] = 0       # original value 2 → background becomes 0
-    gt_remapped[gt_mask == 1] = fg_class  # original value 1 → foreground becomes fg_class
+    gt_remapped[gt_mask == 2] = 0
+    gt_remapped[gt_mask == 1] = fg_class  
     # Pixels with original value 3 remain 255 (ignored).
 
     valid_pixels = gt_remapped != 255

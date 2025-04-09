@@ -4,12 +4,12 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 import torch
-import torch.nn as nn
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 
 from models.prompt_unet import PromptUNet
 
+# Load the pre-trained model.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = PromptUNet(num_classes=2, in_channels=4).to(device)
 model_path = 'prompt_weights/prompt_unet_model_256_epochs_50.pth'
@@ -18,7 +18,6 @@ model.eval()
 
 # Create a heatmap with a Gaussian centered at 'point'.
 def create_prompt_heatmap(img_shape, point, sigma=5):
-
     heatmap = np.zeros(img_shape, dtype=np.float32)
     heatmap[point[0], point[1]] = 1.0
     heatmap = gaussian_filter(heatmap, sigma=sigma)
@@ -100,12 +99,13 @@ class SegmentationGUI:
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
         if not file_path:
             return
-        # Load image using OpenCV.
+        
         self.image = cv2.imread(file_path)
         if self.image is None:
             messagebox.showerror("Error", "Could not load image.")
             return
-        # Convert for display.
+
+        # Resize image to fit the canvas.
         image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         image_pil = Image.fromarray(image_rgb)
         image_pil = image_pil.resize((256,256))
@@ -118,11 +118,13 @@ class SegmentationGUI:
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
         if not file_path:
             return
-        # Load GT mask using OpenCV.
+        
+        # Load GT mask as grayscale.
         self.gt_mask = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         if self.gt_mask is None:
             messagebox.showerror("Error", "Could not load GT mask.")
             return
+        
         # Resize GT mask to match the display size.
         self.gt_mask = cv2.resize(self.gt_mask, (256, 256))
         messagebox.showinfo("Loaded", "Ground truth mask loaded successfully.")
@@ -162,7 +164,8 @@ class SegmentationGUI:
         # Prepare the original image.
         image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         image_rgb = cv2.resize(image_rgb, (256,256))
-        # Create a Matplotlib figure.
+
+
         num_cols = 4 if self.gt_mask is not None else 3
         self.fig, axs = plt.subplots(1, num_cols, figsize=(16,4))
         axs[0].imshow(image_rgb)

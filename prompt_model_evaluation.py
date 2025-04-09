@@ -194,7 +194,6 @@ mean_bg_f1 = np.mean(bg_f1s) * 100
 mean_bg_iou = np.mean(bg_ious) * 100
 mean_bg_dice = np.mean(bg_dices) * 100
 
-# Print summarized results.
 print("\n--- Evaluation Results for Foreground Prompts ---")
 print(f"Mean Pixel Accuracy: {mean_fg_acc:.2f}%")
 print(f"Mean Precision: {mean_fg_prec:.2f}%")
@@ -210,14 +209,6 @@ print(f"Mean Recall: {mean_bg_rec:.2f}%")
 print(f"Mean F1 Score: {mean_bg_f1:.2f}%")
 print(f"Mean IoU: {mean_bg_iou:.2f}%")
 print(f"Mean Dice Coefficient: {mean_bg_dice:.2f}%")
-
-# Summary table.
-print("\nSummary Table:")
-print("{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}".format("Test", "Acc", "Prec", "Rec", "F1", "IoU", "Dice"))
-print("{:<20}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}".format(
-    "Foreground", mean_fg_acc, mean_fg_prec, mean_fg_rec, mean_fg_f1, mean_fg_iou, mean_fg_dice))
-print("{:<20}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}{:<20.2f}".format(
-    "Background", mean_bg_acc, mean_bg_prec, mean_bg_rec, mean_bg_f1, mean_bg_iou, mean_bg_dice))
 
 metrics_filename = 'metrics/prompt_unet_model_256_epochs_50.txt'
 with open(metrics_filename, 'w') as f:
