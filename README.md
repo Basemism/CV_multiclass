@@ -1,53 +1,95 @@
-# Dataset Preparation
-Download dataset (images, and annotations) from here; https://www.robots.ox.ac.uk/%7Evgg/data/pets/ .
+# Multiclass Segmentation Framework
 
-Extract and place the files inside the project directory as shown below:
+This repository contains a framework for training, evaluating, and visualizing deep learning models for multiclass image segmentation tasks. The project supports multiple architectures, including UNet, Autoencoder-based segmentation, and CLIP-based segmentation.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Directory Structure](#directory-structure)
+- [Setup](#setup)
+- [Usage](#usage)
+  - [Training](#training)
+  - [Evaluation](#evaluation)
+  - [Visualisation](#visualisation)
+- [Models](#models)
+
+
+## Overview
+
+This framework is designed for multiclass segmentation tasks, where the goal is to classify each pixel in an image into one of several predefined classes. The supported classes in this project are:
+- Background
+- Cat
+- Dog
+
+## Features
+
+- **Training**: Train models like UNet, Autoencoder-based segmentation, and CLIP-based segmentation.
+- **Evaluation**: Evaluate models using metrics such as pixel accuracy, precision, recall, F1 score, IoU, and Dice coefficient.
+- **Visualisation**: Segmentations of model output 
+- **Robustness Testing**: Test model robustness under noisy conditions.
+
+## Directory Structure
 ```
-Computer_Vision_Project/
-│ ├── dataset/ 
-| │ ├── annotations/ 
-| │ │ ├── trimaps/ 
-| │ │ ├── xmls/ 
-| │ │ ├── ._trimaps 
-| │ │ ├── README 
-| │ │ ├── test.txt 
-| │ │ ├── trainval.txt 
-| │ ├── images/
-| | │ ├──Abyssinian_1.jpg 
-| | | ├──...
+CV_multiclass/ 
+    ├── autoencoder_model_evaluation.py # Evaluation script for Autoencoder-based segmentation 
+    ├── autoencoder_training.py # Training script for Autoencoder 
+    ├── clip_model_evaluation.py # Evaluation script for CLIP-based segmentation 
+    ├── clip_training.py # Training script for CLIP-based segmentation 
+    ├── metrics/ # Directory for storing evaluation metrics 
+    ├── models/ # Contains model definitions 
+    │ ├── autoencoder.py # Autoencoder model 
+    │ ├── clip.py # CLIP-based segmentation model 
+    │ ├── unet.py # UNet model 
+    ├── prompt_model_evaluation.py # Evaluation script for PromptUNet 
+    ├── prompt_unet_training.py # Training script for PromptUNet 
+    ├── unet_model_evaluation.py # Evaluation script for UNet 
+    ├── unet_training.py # Training script for UNet 
+    ├── vis_latent.py # Script for visualizing latent representations 
+    ├── README.md # Project documentation
 ```
-# UNet Model
 
-The UNet model is implemented in the `unet.py` file. It consists of an encoder-decoder architecture with skip connections. The encoder downsamples the input image, capturing context, while the decoder upsamples the feature maps to produce the final segmentation map.
 
-## UNet Architecture
+## Setup
 
-- **DoubleConv**: A helper class that performs two consecutive convolution operations, each followed by batch normalization and ReLU activation.
-- **UNet**: The main UNet class that defines the architecture, including the encoder, decoder, and skip connections.
-
-## Training the UNet
-
-The training script is provided in the `unet_training.ipynb` notebook. It includes data loading, model training, and validation steps.
-
-## Inference with UNet
-
-The `unet_ui.py` script allows you to perform inference using a trained UNet model. It takes an input image, processes it through the model, and saves or displays the output.
-
-### Usage
-
+1. Clone the repository:
 ```bash
-python unet_ui.py --input <input_image> --weights <path_to_weights> --output <output_image> (optionally --gt <path_to_ground_truth>)
+git clone https://github.com/Basemism/CV_multiclass.git
+cd CV_multiclass
 ```
-
-## Evaluation
-
-The `unet_evaluation.py` script evaluates the performance of the trained UNet model on a test dataset. It calculates metrics such as pixel accuracy, precision, recall, and F1 score.
-
-### Usage
-
+2. Install dependencies:
 ```bash
-python unet_evaluation.py --dim <image_dimension> --weights <path_to_weights> --metrics <path_to_save_file>
+pip install -r requirements.txt
 ```
 
-This script outputs the evaluation metrics and saves them to the specified file.
+3. Ensure the dataset is prepared in the following structure:
+```
+trainval_<dim>/
+├── images/       # Input images
+├── annotations/  # Corresponding segmentation masks
+```
+
+## Usage
+### Training:
+- UNet: `python unet_training.py`
+- Autoencoder: `python autoencoder_training.py`
+- Clip-based Segmentation: `python clip_training.py`
+- Prompt-Unet: `python prompt_unet_training.py`
+
+### Evaluation:
+- UNet: `python unet_model_evaluation.py --weights <path_to_weights>`
+- Autoencoder: `python autoencoder_model_evaluation.py --weights <path_to_weights>`
+- Clip-based Segmentation: `python clip_model_evaluation.py --weights <path_to_weights>`
+- Prompt-Unet: `python prompt_model_evaluation.py --weights <path_to_weights>`
+
+### Visualisation
+### Visualisation:
+- UNet, Autoencoder, CLIP: `python model_ui.py --input <path_to_input_image> --gt <path_to_ground_truth_image> --category <category_id> --output <path_to_output_image> --model <model_name> --weights <path_to_weights_file> --dim <image_dimension> --gpu <gpu_id>`
+- Prompt-Based: `python prompt_gui.py`
+- Prompt-Based: `python prompt_gui.py`
+
+## Models
+- UNet: A popular architecture for image segmentation tasks.
+- Autoencoder-based Segmentation: Uses an autoencoder's encoder for feature extraction.
+- CLIP-based Segmentation: Combines CLIP's visual encoder with a segmentation decoder.
+- PromptUNet: Incorporates prompt-based inputs for segmentation.
